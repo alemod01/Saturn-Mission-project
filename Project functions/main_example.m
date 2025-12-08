@@ -1,4 +1,3 @@
-clear all
 close all
 clc
 
@@ -39,11 +38,9 @@ sat.orbit0.nu = -240.4281;     % deg
 % Select starting date and convert it in Julian Date
 timezone = 'UTC';
 start_date = datetime('2031-02-12 12:00:00', "TimeZone", timezone);
-%% 
 end_date = datetime('2033-05-31 12:00:00', "TimeZone", timezone);
 
 jd_start = juliandate(start_date);
-%% 
 jd_end = juliandate(end_date);
 
 % Select planets to visualize
