@@ -131,10 +131,10 @@ sat.orbit_escape_earth.e = 1 + (norm(v_inf)*au)^2/v_c^2;
 
 % Compute phase angle theta_f and alpha, and maneuver anomaly on the
 % initial circular orbit
-theta_f = pi + acos(1/sat.orbit_escape_earth.e); %angolo asintoto 
+theta_f = pi + acos(1/sat.orbit_escape_earth.e); % angolo asintoto 
 alpha = atan2(v_earth(2, 1), v_earth(1, 1));
 %alpha = atan2(v_inf(2), v_inf(1));
-sat.orbit0.nu_manoeuver = rad2deg(alpha + theta_f - 2*pi); %punto esatto accensione motori 
+sat.orbit0.nu_manoeuver = rad2deg(alpha + theta_f - 2*pi); % punto esatto accensione motori 
 
 % Compute hyperbola perigee position vector equal to position at
 % nu_maneuver position along circular orbit. Compute velocity direction.
