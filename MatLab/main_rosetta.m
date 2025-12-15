@@ -107,13 +107,20 @@ sat.orbit0.i = i_ecl;
 % transfer trajectory and initial ad final velocities
 deltaT_earth_mars = (jd_mars_fb - jd_start)*24*60*60;
 
+
 % Compute initial and final velocities in au/s
 [v_earth_sp_appr, v_mars_sa_appr, ~, exitflag] = lambert(r_earth(:, 1)', r_mars_fb', deltaT_earth_mars, 0, mu_sun_au, 'au', 'sec');
+
+if dot(v_earth_sp_appr, v_earth(:,1)) < 0
+    fprintf('Traiettoria retrograda rispetto alla Terra → non fisica');
+end
+
 v_earth_sp_appr = v_earth_sp_appr'; %velocità eliocentrica di partenza 
 v_mars_sa_appr = v_mars_sa_appr'; %velocità eliocentrica di arrivo
 
 % Compute transfer trajectory orbital parameters
 sat.orbit_transfer_earth_mars = rv2oe(r_earth(:, 1), v_earth_sp_appr, mu_sun_au);
+
 
 %% PHASE 3
 % -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -122,37 +129,101 @@ sat.orbit_transfer_earth_mars = rv2oe(r_earth(:, 1), v_earth_sp_appr, mu_sun_au)
 %% Part 1: Escape manoeuver from Earth - Calcolo Orbita di fuga 
 % Calculate the required deltaV of the manoeuver so that we
 % reach V_sp at Earth SoI, and the exact time of the maneuver
-v_inf = v_earth_sp_appr - v_earth(:, 1);
-v_c = sqrt(mu_earth/sat.orbit0.a);
+v_inf = v_earth_sp_appr - v_earth(:, 1) ;   % [AU/s]
+v_inf_kms = v_inf * au;                   % [km/s]
+
+v_c = sqrt(mu_earth / sat.orbit0.a);      % [km/s]       
 
 % Compute hyperbola parameters
-sat.orbit_escape_earth.a = - mu_earth/(norm(v_inf)*au)^2;
-sat.orbit_escape_earth.e = 1 + (norm(v_inf)*au)^2/v_c^2;
+sat.orbit_escape_earth.a = - mu_earth / norm(v_inf_kms)^2;
+sat.orbit_escape_earth.e = 1 + (sat.orbit0.a * norm(v_inf_kms)^2) / mu_earth;
 
-% Compute phase angle theta_f and alpha, and maneuver anomaly on the
-% initial circular orbit
-theta_f = pi + acos(1/sat.orbit_escape_earth.e); % angolo asintoto 
+% Compute phase angle theta_f and alpha
+theta_f = pi + acos(1 / sat.orbit_escape_earth.e);   % [rad]
+alpha = atan2(v_inf_kms(2), v_inf_kms(1));           % [rad]
 %alpha = atan2(v_earth(2, 1), v_earth(1, 1));
-alpha = atan2(v_inf(2), v_inf(1));
-sat.orbit0.nu_manoeuver = rad2deg(alpha + theta_f - 2*pi); % punto esatto accensione motori 
 
-% Compute hyperbola perigee position vector equal to position at
-% nu_maneuver position along circular orbit. Compute velocity direction.
-[r_manoeuver_eci, v_manoeuver_circ_eci] = oe2rv(sat.orbit0.a, sat.orbit0.e, sat.orbit0.i, sat.orbit0.raan, sat.orbit0.argp, sat.orbit0.nu_manoeuver);
-[r_manoeuver_ecl, v_manoeuver_circ_ecl] = eci_eq2ecl(r_manoeuver_eci, v_manoeuver_circ_eci);
+sat.orbit0.nu_manoeuver = rad2deg(alpha + theta_f - 2*pi);
+sat.orbit0.nu_manoeuver = mod(sat.orbit0.nu_manoeuver, 360);
+
+% Position at maneuver point
+[r_manoeuver_eci, v_manoeuver_circ_eci] = oe2rv( sat.orbit0.a, sat.orbit0.e, sat.orbit0.i, sat.orbit0.raan, sat.orbit0.argp, sat.orbit0.nu_manoeuver);
+
+[r_manoeuver_ecl, ~] = eci_eq2ecl(r_manoeuver_eci, v_manoeuver_circ_eci);
 r_esc_ecl_eci = r_manoeuver_ecl;
-v_direction = v_manoeuver_circ_ecl / norm(v_manoeuver_circ_ecl);
 
-% Compute datetime of maneuver (kepler_direct from nu to nu_maneuver)
-delta_t_wait = kepler_direct(mu_earth, sat.orbit0.a, sat.orbit0.e, sat.orbit0.nu, sat.orbit0.nu_manoeuver);
-jd_esc_maneuver = jd_start + delta_t_wait / 60/60/24;
+% Tangential velocity direction 
+nu = deg2rad(sat.orbit0.nu_manoeuver);
+v_direction = [-sin(nu); cos(nu); 0];
+v_direction = v_direction / norm(v_direction);
 
-% Compute the velocity vector on the escape trajectory (after maneuver)
-v_hyperbola_perigee_mag = sqrt(mu_earth * (2 / norm(r_esc_ecl_eci) - 1 / sat.orbit_escape_earth.a)); 
+% Time of maneuver
+delta_t_wait = kepler_direct( mu_earth, sat.orbit0.a, sat.orbit0.e, sat.orbit0.nu, sat.orbit0.nu_manoeuver );
+jd_esc_maneuver = jd_start + delta_t_wait / 86400;
+
+% Velocity at hyperbolic perigee
+v_hyperbola_perigee_mag = sqrt(mu_earth * (2 / norm(r_esc_ecl_eci) - 1 / sat.orbit_escape_earth.a));
 v_esc = v_hyperbola_perigee_mag * v_direction;
 
+% Circular orbit velocity vector
+v_circ = v_c * v_direction;
+
 % Delta V richiesto
-sat.deltaV_escape_earth = v_hyperbola_perigee_mag - v_c;
+sat.deltaV_escape_earth = norm(v_esc - v_circ);
+
+%% DEBUG – Escape diagnostics
+
+fprintf('\n================ EARTH ESCAPE DIAGNOSTICS ================\n');
+
+% --- Velocity magnitudes ---
+fprintf('||v_inf||              = %.3f km/s\n', norm(v_inf_kms));
+fprintf('||v_c (parking)||      = %.3f km/s\n', v_c);
+fprintf('||v_perigee_hyper||    = %.3f km/s\n', v_hyperbola_perigee_mag);
+fprintf('DeltaV escape          = %.3f km/s\n', sat.deltaV_escape_earth);
+
+% --- Direction checks ---
+v_inf_dir   = v_inf_kms / norm(v_inf_kms);
+v_esc_dir   = v_esc / norm(v_esc);
+v_earth_dir = (v_earth(:,1)*au) / norm(v_earth(:,1)*au);
+
+% Dot products (cosines of angles)
+cos_esc_earth = dot(v_esc_dir, v_earth_dir);
+cos_inf_earth = dot(v_inf_dir, v_earth_dir);
+cos_esc_inf   = dot(v_esc_dir, v_inf_dir);
+
+fprintf('\nDirection cosines:\n');
+fprintf('cos(v_esc , v_earth)   = %.4f\n', cos_esc_earth);
+fprintf('cos(v_inf , v_earth)   = %.4f\n', cos_inf_earth);
+fprintf('cos(v_esc , v_inf)     = %.4f\n', cos_esc_inf);
+
+% --- Angles in degrees (more intuitive)
+ang_esc_earth = acosd(cos_esc_earth);
+ang_inf_earth = acosd(cos_inf_earth);
+ang_esc_inf   = acosd(cos_esc_inf);
+
+fprintf('\nAngles [deg]:\n');
+fprintf('angle(v_esc , v_earth) = %.2f deg\n', ang_esc_earth);
+fprintf('angle(v_inf , v_earth) = %.2f deg\n', ang_inf_earth);
+fprintf('angle(v_esc , v_inf)   = %.2f deg\n', ang_esc_inf);
+
+% --- Interpretation ---
+fprintf('\nInterpretation:\n');
+
+if cos_inf_earth > 0
+    fprintf('- v_inf is roughly ALIGNED with Earth velocity (leading escape)\n');
+else
+    fprintf('- v_inf is roughly OPPOSITE to Earth velocity (trailing escape)\n');
+end
+
+if abs(ang_esc_inf) < 5
+    fprintf('- v_esc direction is consistent with asymptotic v_inf\n');
+else
+    fprintf('- WARNING: v_esc and v_inf are NOT well aligned\n');
+end
+
+fprintf('===========================================================\n');
+
+
 
 % -------------------------------------------------------------------------
 % CORREZIONE MANUALE DEL TIRO (TARGETING)
