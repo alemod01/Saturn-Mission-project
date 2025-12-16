@@ -54,10 +54,55 @@ planets_elements = elements_from_ephems(planets, jd_start);
 
 % Compute planets states from start to end date with a step of a day or
 % some hours
-step = 0.25; %6 ore (0.25giorno)
-jd_vec = jd_start:step:jd_end;
-[day_vec, r_venus, v_venus] = planet_orbit_coplanar(planets_elements.venus, jd_start, jd_end, jd_vec);
-t_interp = jd_vec*24*60*60;
+step = 1; %step  giorno 
+jd_fine=jd_start+100;
+jd_vec = jd_start:step:jd_fine;
+%[day_vec, r_venus, v_venus] = planet_orbit_coplanar(planets_elements.venus, jd_start, jd_fine, jd_vec);
+
+
+[day_vec, r_mars_g, v_mars_g] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_fine, jd_vec );
+t_interp = jd_vec*24*60*60; 
+
+
+
+
+%% VISUALIZZAZIONE SPOSTAMENTO MARTE 
+figure('Name', 'Mars Displacement Check', 'Color', 'w');
+hold on; grid on; axis equal;
+xlabel('X [AU]'); ylabel('Y [AU]');
+title({'Spostamento di Marte nel periodo considerato', 'Step temporale: 6 ore'});
+
+% 1. Disegna il Sole (Riferimento centrale)
+plot(0, 0, 'y.', 'MarkerSize', 40, 'DisplayName', 'Sole');
+
+
+%2
+% Disegna la scia di pallini ("pallini" ogni 6 ore)
+% Usa '.' per punti piccoli o 'o' per cerchietti vuoti.
+% Dato che sono tanti punti, '.' è più leggero graficamente.
+plot(r_mars_g(1, :), r_mars_g(2, :), 'r.', 'MarkerSize', 6, 'DisplayName', 'Posizione (ogni 6h)');
+
+% 3. Evidenzia Inizio e Fine per capire il verso
+plot(r_mars_g(1, 1), r_mars_g(2, 1), 'bo', 'MarkerFaceColor', 'b', 'MarkerSize', 8, 'DisplayName', 'Start');
+plot(r_mars_g(1, end), r_mars_g(2, end), 'ko', 'MarkerFaceColor', 'k', 'MarkerSize', 8, 'DisplayName', 'Arrivo');
+
+legend('Location', 'best');
+
+% Aggiungi una freccia o testo per chiarire la direzione (Opzionale)
+text(r_mars_g(1,1), r_mars_g(2,1)+0.1, '  Start', 'Color', 'b');
+text(r_mars_g(1,end), r_mars_g(2,end)+0.1, '  End', 'Color', 'k');
+
+
+fprintf('\n--- VERIFICA UNITÀ ---\n');
+fprintf('Posizione Marte (Start):  [%.4f, %.4f] AU\n', r_mars_g(1,1), r_mars_g(2,1));
+fprintf('Posizione Marte (end):  [%.4f, %.4f] AU\n', r_mars_g(1, end), r_mars_g(2, end));
+
+
+
+
+
+
+
 
 % Find closer idx to jd_mars_fb e jd_jupiter_arrival in jd_vec
 [~, idx_mars_fb] = min(abs(jd_vec - jd_mars_fb));
@@ -109,7 +154,7 @@ deltaT_earth_mars = (jd_mars_fb - jd_start)*24*60*60;
 
 
 % Compute initial and final velocities in au/s
-[v_earth_sp_appr, v_mars_sa_appr, ~, exitflag] = lambert(r_earth(:, 1)', r_mars_fb', deltaT_earth_mars, 0, mu_sun_au, 'au', 'sec');
+[v_earth_sp_appr, v_mars_sa_appr, ~, exitflag] = lambert(r_earth(:, 1)', r_mars_fb', -deltaT_earth_mars, 0, mu_sun_au, 'au', 'sec');
 
 if dot(v_earth_sp_appr, v_earth(:,1)) < 0
     fprintf('Traiettoria retrograda rispetto alla Terra → non fisica');
@@ -231,9 +276,9 @@ fprintf('===========================================================\n');
 % Il problema: Partiamo dalla SOI, non dal centro della Terra.
 % La soluzione: Correggiamo leggermente la velocità e l'angolo di uscita.
 
-% 1. Definiamo i fattori di correzione (QUESTI SONO I NUMERI DA CAMBIARE)
-k_vel = 1.0000008;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle = -0.18;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+% 1. Definiamo i fattori di correzione
+k_vel = 1.0000005  ;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle = -5;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
 v_esc_mag_corr = norm(v_esc) * k_vel;
@@ -296,14 +341,15 @@ v_sat_earth_sp = v_sat_earth_escape(:, end)/au + v_earth_sp;
 
 state0_interplanetary_earth_mars = [r_sat_earth_sp; v_sat_earth_sp];
 
-
+%parametro correttivo gg interplanetary
+kg=30;
 %calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI marte 
 t_cruise_total_earth_mars = jd_mars_fb*24*60*60 - t_vec_escape(end); %durata in secondi del viaggio 
 
-
-t_vec_cruise_earth_mars= linspace(t_vec_escape(end),jd_mars_fb*24*60*60,t_cruise_total_earth_mars/3600);
+t_cruise_total_earth_mars=t_cruise_total_earth_mars+kg*24*60*60;
+t_vec_cruise_earth_mars= linspace(t_vec_escape(end),jd_mars_fb*24*60*60  + (kg*24*60*60) ,t_cruise_total_earth_mars/3600);
 % propagazione
-options_cruise_earth_mars = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition(t, y, soi_mars));
+options_cruise_earth_mars = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition_interplanetary(t, y, jd_earth_sp , planets_elements.mars, soi_mars));
 [t_vec_cruise_earth_mars, state_cruise_earth_mars] = ode45(@(t, y) satellite_ode(t, y, mu_sun_au), t_vec_cruise_earth_mars, state0_interplanetary_earth_mars, options_cruise_earth_mars);
 
 % Estrazione Risultati finali (Stato Eliocentrico all'arrivo)
@@ -370,26 +416,27 @@ angle_err = rad2deg(acos(cos_theta));
 fprintf('Errore angolare: %.2f gradi\n', angle_err);
 
 %% Propagate inside Mars SoI
-% Propagate inside the Mars SoI till the satellite exits the Mars SoI
-options_mars_fb = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition(t, y, soi_mars));
-state0_sat_mars_escape = [r_sat_mars_km; v_sat_mars_km]; % punto di partenza simulazione (calcolato prima) 
-t_vec_mars_escape = linspace(t_vec_cruise_earth_mars(end), t_vec_cruise_earth_mars(end)+gg*24*60*60, gg*24*60/30);
-[t_vec_mars_escape, state_sat_mars_escape] = ode45(@(t, y) satellite_ode(t, y, mu_mars), t_vec_mars_escape, state0_sat_mars_escape, options_mars_fb);
-r_sat_mars_escape = state_sat_mars_escape(:, 1:3)';
-v_sat_mars_escape = state_sat_mars_escape(:, 4:6)';
-
-% Compute jd time and Mars position when satellite is exiting Mars SoI limit
-jd_mars_sp = t_vec_mars_escape(end)/24/60/60; % momento esatto in cui si ha uscita Earth SoI
-mars_soi_date = datetime(jd_mars_sp,'convertfrom','juliandate','Format','d-MMM-y HH:mm:ss', 'TimeZone', timezone);
-[~, r_mars_sp, v_mars_sp] = planet_orbit_coplanar(planets_elements.mars, jd_start, jd_mars_sp, [jd_start, jd_mars_sp]);
-r_mars_sp = r_mars_sp(:, end); % posizione e velocità della terra al momento in cui sat buca SoI 
-v_mars_sp = v_mars_sp(:, end);
-
-% Convert from ECI to J2000 absolute frame
-r_sat_mars_sp = r_sat_mars_escape(:, end)/au + r_mars_sp;
-v_sat_mars_sp = v_sat_mars_escape(:, end)/au + v_mars_sp;
+% % Propagate inside the Mars SoI till the satellite exits the Mars SoI
+% options_mars_fb = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition(t, y, soi_mars));
+% state0_sat_mars_escape = [r_sat_mars_km; v_sat_mars_km]; % punto di partenza simulazione (calcolato prima) 
+% t_vec_mars_escape = linspace(t_vec_cruise_earth_mars(end), t_vec_cruise_earth_mars(end)+gg*24*60*60, gg*24*60/30);
+% [t_vec_mars_escape, state_sat_mars_escape] = ode45(@(t, y) satellite_ode(t, y, mu_mars), t_vec_mars_escape, state0_sat_mars_escape, options_mars_fb);
+% r_sat_mars_escape = state_sat_mars_escape(:, 1:3)';
+% v_sat_mars_escape = state_sat_mars_escape(:, 4:6)';
+% 
+% % Compute jd time and Mars position when satellite is exiting Mars SoI limit
+% jd_mars_sp = t_vec_mars_escape(end)/24/60/60; % momento esatto in cui si ha uscita Earth SoI
+% mars_soi_date = datetime(jd_mars_sp,'convertfrom','juliandate','Format','d-MMM-y HH:mm:ss', 'TimeZone', timezone);
+% [~, r_mars_sp, v_mars_sp] = planet_orbit_coplanar(planets_elements.mars, jd_start, jd_mars_sp, [jd_start, jd_mars_sp]);
+% r_mars_sp = r_mars_sp(:, end); % posizione e velocità della terra al momento in cui sat buca SoI 
+% v_mars_sp = v_mars_sp(:, end);
+% 
+% % Convert from ECI to J2000 absolute frame
+% r_sat_mars_sp = r_sat_mars_escape(:, end)/au + r_mars_sp;
+% v_sat_mars_sp = v_sat_mars_escape(:, end)/au + v_mars_sp;
 
 % Convert from Mars-Centered to J2000 absolute frame
 
 % Compute fly-by deltaV
+
 
