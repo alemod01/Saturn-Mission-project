@@ -22,7 +22,7 @@ if e < 1
     end
     E_rad = E_n;
 
-    E_deg = deg2rad(E_rad);
+    E_deg = rad2deg(E_rad);
 
 % Hyperbolic case:
 elseif e > 1
@@ -40,5 +40,5 @@ elseif e > 1
     end
     E_rad = F_n; 
 
-    E_deg = deg2rad(E_rad);
+    E_deg = rad2deg(E_rad);
 end
