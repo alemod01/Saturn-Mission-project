@@ -34,11 +34,15 @@ end
 t_vec = t_vec_days*24*60*60;                % seconds
 
 % Compute the mean anomaly M for each day from initial to final date
-M_vec_rad = planet_elements.M * pi/180 +  n * t_vec;
+
+M0_rad = deg2rad(planet_elements.M);
+M_vec_rad = M0_rad + n * t_vec;
 M_vec_deg = rad2deg(M_vec_rad);
 
+M_vec_deg_mod = mod(M_vec_deg, 360);
+
 % Compute the eccentric anomaly solving the inverse kepler problem
-E_vec_deg = kepler_inverse(planet_elements.e, M_vec_deg, 0, 1e-8);
+E_vec_deg = kepler_inverse(planet_elements.e, M_vec_deg_mod, 0, 1e-8);
 E_vec_rad = deg2rad(E_vec_deg);
 
 % Compute true anomaly
