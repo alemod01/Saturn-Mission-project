@@ -60,7 +60,7 @@ jd_vec = jd_start:step:jd_fine;
 %[day_vec, r_venus, v_venus] = planet_orbit_coplanar(planets_elements.venus, jd_start, jd_fine, jd_vec);
 
 
-[day_vec, r_mars_g, v_mars_g] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_fine, jd_vec );
+[day_vec, r_mars_g, v_mars_g] = planet_orbit_coplanar(planets_elements.mars, jd_start, jd_fine, jd_vec );
 t_interp = jd_vec*24*60*60; 
 
 
