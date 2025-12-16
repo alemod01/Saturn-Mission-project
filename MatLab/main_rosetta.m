@@ -154,7 +154,7 @@ deltaT_earth_mars = (jd_mars_fb - jd_start)*24*60*60;
 
 
 % Compute initial and final velocities in au/s
-[v_earth_sp_appr, v_mars_sa_appr, ~, exitflag] = lambert(r_earth(:, 1)', r_mars_fb', -deltaT_earth_mars, 0, mu_sun_au, 'au', 'sec');
+[v_earth_sp_appr, v_mars_sa_appr, ~, exitflag] = lambert(r_earth(:, 1)', r_mars_fb', deltaT_earth_mars, 0, mu_sun_au, 'au', 'sec');
 
 if dot(v_earth_sp_appr, v_earth(:,1)) < 0
     fprintf('Traiettoria retrograda rispetto alla Terra → non fisica');
@@ -277,8 +277,8 @@ fprintf('===========================================================\n');
 % La soluzione: Correggiamo leggermente la velocità e l'angolo di uscita.
 
 % 1. Definiamo i fattori di correzione
-k_vel = 1.0000005  ;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle = -5;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+k_vel = 0.999999;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle = 0.02;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
 v_esc_mag_corr = norm(v_esc) * k_vel;
@@ -341,13 +341,13 @@ v_sat_earth_sp = v_sat_earth_escape(:, end)/au + v_earth_sp;
 
 state0_interplanetary_earth_mars = [r_sat_earth_sp; v_sat_earth_sp];
 
-%parametro correttivo gg interplanetary
-kg=30;
-%calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI marte 
+% parametro correttivo gg interplanetary
+kg = 0;
+% calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI marte 
 t_cruise_total_earth_mars = jd_mars_fb*24*60*60 - t_vec_escape(end); %durata in secondi del viaggio 
 
 t_cruise_total_earth_mars=t_cruise_total_earth_mars+kg*24*60*60;
-t_vec_cruise_earth_mars= linspace(t_vec_escape(end),jd_mars_fb*24*60*60  + (kg*24*60*60) ,t_cruise_total_earth_mars/3600);
+t_vec_cruise_earth_mars= linspace(t_vec_escape(end), jd_mars_fb*24*60*60  + (kg*24*60*60) ,t_cruise_total_earth_mars/3600);
 % propagazione
 options_cruise_earth_mars = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition_interplanetary(t, y, jd_earth_sp , planets_elements.mars, soi_mars));
 [t_vec_cruise_earth_mars, state_cruise_earth_mars] = ode45(@(t, y) satellite_ode(t, y, mu_sun_au), t_vec_cruise_earth_mars, state0_interplanetary_earth_mars, options_cruise_earth_mars);
