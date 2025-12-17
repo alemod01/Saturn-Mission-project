@@ -1,17 +1,29 @@
 %% PLOT 2D: Traiettoria interplanetaria Earth SOI -> Mars SOI (proiezione XY, unità AU)
 try
+    
     sat_pos_au = state_cruise_earth_mars(:, 1:3); % Nx3 (AU)
     figure('Name', 'Traiettoria Earth->Mars (2D XY)'); clf; hold on
+    
     % Sole
     plot(0,0,'y*','MarkerSize',12,'DisplayName','Sole');
+    
     % Traiettoria della sonda (eliocentrica)
     plot(sat_pos_au(:,1), sat_pos_au(:,2), 'g-', 'LineWidth', 1.5, 'DisplayName', 'Traiettoria sonda');
+
+    %Traiettoria marte 
+    step_m=0.1; 
+    jd_vec = jd_start:step_m:jd_mars_arrival_actual;
+    [~, r_mars_traj, v_mars_traj] = planet_orbit_coplanar(planets_elements.mars, jd_start, jd_mars_arrival_actual, jd_vec);
+    plot(r_mars_traj(1, :), r_mars_traj(2, :), 'm--', 'LineWidth', 1.2, 'DisplayName', 'Orbita Marte');
+    
+    
     % Punti chiave
     plot(r_sat_earth_sp(1), r_sat_earth_sp(2), 'ro', 'MarkerFaceColor', 'r', 'DisplayName', 'Uscita SOI Terra');
-    plot(r_sat_interplanetary_earth_mars(1), r_sat_interplanetary_earth_mars(2), 'kx', 'MarkerSize', 8, 'LineWidth', 2, 'DisplayName', 'Ingresso SOI Marte (stima)');
+    plot(r_sat_interplanetary_earth_mars(1), r_sat_interplanetary_earth_mars(2), 'kx', 'MarkerSize', 8, 'LineWidth', 2, 'DisplayName', 'Sat end');
     plot(r_earth_sp(1), r_earth_sp(2), 'bo', 'MarkerFaceColor', 'b', 'DisplayName', 'Terra (alla partenza)');
+    %plot(r_mars_traj(1, 1), r_mars_traj(2, 1), 'mo', 'MarkerFaceColor', 'w', 'DisplayName', 'Marte (Start)');
     plot(r_mars_arr(1), r_mars_arr(2), 'mo', 'MarkerFaceColor', 'm', 'DisplayName', 'Marte (arrivo)');
-
+    
     % SOI (proiezione 2D) in AU
     theta = linspace(0,2*pi,240)';
     earth_soi_au = soi_earth / au;

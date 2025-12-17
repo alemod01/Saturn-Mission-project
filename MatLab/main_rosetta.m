@@ -52,57 +52,12 @@ planets = {'venus', 'earth', 'mars', 'jupiter', 'saturn'};
 % them constant throughout the entire mission (except for the mean anomaly)
 planets_elements = elements_from_ephems(planets, jd_start);
 
+
 % Compute planets states from start to end date with a step of a day or
 % some hours
 step = 1; %step  giorno 
 jd_fine=jd_start+100;
-jd_vec = jd_start:step:jd_fine;
-%[day_vec, r_venus, v_venus] = planet_orbit_coplanar(planets_elements.venus, jd_start, jd_fine, jd_vec);
-
-
-[day_vec, r_mars_g, v_mars_g] = planet_orbit_coplanar(planets_elements.mars, jd_start, jd_fine, jd_vec );
-t_interp = jd_vec*24*60*60; 
-
-
-
-
-%% VISUALIZZAZIONE SPOSTAMENTO MARTE 
-figure('Name', 'Mars Displacement Check', 'Color', 'w');
-hold on; grid on; axis equal;
-xlabel('X [AU]'); ylabel('Y [AU]');
-title({'Spostamento di Marte nel periodo considerato', 'Step temporale: 6 ore'});
-
-% 1. Disegna il Sole (Riferimento centrale)
-plot(0, 0, 'y.', 'MarkerSize', 40, 'DisplayName', 'Sole');
-
-
-%2
-% Disegna la scia di pallini ("pallini" ogni 6 ore)
-% Usa '.' per punti piccoli o 'o' per cerchietti vuoti.
-% Dato che sono tanti punti, '.' è più leggero graficamente.
-plot(r_mars_g(1, :), r_mars_g(2, :), 'r.', 'MarkerSize', 6, 'DisplayName', 'Posizione (ogni 6h)');
-
-% 3. Evidenzia Inizio e Fine per capire il verso
-plot(r_mars_g(1, 1), r_mars_g(2, 1), 'bo', 'MarkerFaceColor', 'b', 'MarkerSize', 8, 'DisplayName', 'Start');
-plot(r_mars_g(1, end), r_mars_g(2, end), 'ko', 'MarkerFaceColor', 'k', 'MarkerSize', 8, 'DisplayName', 'Arrivo');
-
-legend('Location', 'best');
-
-% Aggiungi una freccia o testo per chiarire la direzione (Opzionale)
-text(r_mars_g(1,1), r_mars_g(2,1)+0.1, '  Start', 'Color', 'b');
-text(r_mars_g(1,end), r_mars_g(2,end)+0.1, '  End', 'Color', 'k');
-
-
-fprintf('\n--- VERIFICA UNITÀ ---\n');
-fprintf('Posizione Marte (Start):  [%.4f, %.4f] AU\n', r_mars_g(1,1), r_mars_g(2,1));
-fprintf('Posizione Marte (end):  [%.4f, %.4f] AU\n', r_mars_g(1, end), r_mars_g(2, end));
-
-
-
-
-
-
-
+plot_trajectory(planets_elements.mars, jd_start, jd_fine , step)
 
 % Find closer idx to jd_mars_fb e jd_jupiter_arrival in jd_vec
 [~, idx_mars_fb] = min(abs(jd_vec - jd_mars_fb));
@@ -345,14 +300,14 @@ mars_elements_at_departure = elements_from_ephems({'mars'}, jd_earth_sp);
 mars_elements_for_ode = mars_elements_at_departure.mars;
 
 % parametro correttivo gg interplanetary
-kg = 0;
+kg = 100;
 % calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI marte 
 t_cruise_total_earth_mars = jd_mars_fb*24*60*60 - t_vec_escape(end); %durata in secondi del viaggio 
 
 t_cruise_total_earth_mars=t_cruise_total_earth_mars+kg*24*60*60;
 t_vec_cruise_earth_mars= linspace(t_vec_escape(end), jd_mars_fb*24*60*60  + (kg*24*60*60) ,t_cruise_total_earth_mars/3600);
 % propagazione
-options_cruise_earth_mars = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition_interplanetary(t, y, jd_earth_sp , mars_elements_for_ode, soi_mars));
+options_cruise_earth_mars = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition_interplanetary(t, y, jd_start , planets_elements.mars , soi_mars));
 [t_vec_cruise_earth_mars, state_cruise_earth_mars] = ode45(@(t, y) satellite_ode(t, y, mu_sun_au), t_vec_cruise_earth_mars, state0_interplanetary_earth_mars, options_cruise_earth_mars);
 
 % Estrazione Risultati finali (Stato Eliocentrico all'arrivo)
