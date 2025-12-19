@@ -27,6 +27,7 @@ try
     theta = linspace(0,2*pi,240)';
     earth_soi_au = soi_earth / au;
     plot(r_earth_sp(1) + earth_soi_au*cos(theta), r_earth_sp(2) + earth_soi_au*sin(theta), 'b--', 'DisplayName', 'SOI Terra (proj)');
+    plot(r_earth_arr(1) + earth_soi_au*cos(theta), r_earth_arr(2) + earth_soi_au*sin(theta), 'b--', 'DisplayName', 'SOI Terra (proj)');
 
     % Draw velocity direction arrows (scaled for visibility)
     try

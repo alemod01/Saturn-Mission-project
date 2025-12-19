@@ -37,15 +37,15 @@ sat.orbit0.nu = -240.4281;     % deg
 %% Initialization
 % Select starting date and convert it in Julian Date
 timezone = 'UTC';
-start_date_0 = datetime('2004-03-02 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
-start_date = datetime('2005-03-04 12:00:00', "TimeZone", timezone);
+start_date = datetime('2003-03-02 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
+earth_fb_date = datetime('2005-03-04 12:00:00', "TimeZone", timezone);
 mars_fb_date = datetime('2007-02-25 12:00:00', "TimeZone", timezone);
 earth_fb1_date = datetime('2007-11-13 12:00:00', "TimeZone", timezone);
 earth_fb2_date = datetime('2009-11-13 12:00:00', "TimeZone", timezone);
 end_date = datetime('2014-10-19 12:00:00', "TimeZone", timezone);
 
-jd_start_0 = juliandate(start_date_0);
 jd_start = juliandate(start_date);
+jd_earth_fb = juliandate(earth_fb_date);
 jd_mars_fb = juliandate(mars_fb_date);
 jd_earth_fb1 = juliandate(earth_fb1_date);
 jd_earth_fb2 = juliandate(earth_fb2_date);
@@ -56,7 +56,7 @@ planets = {'venus', 'earth', 'mars', 'jupiter', 'saturn'};
 
 % Compute planets orbital elements at starting epoch time, and consider
 % them constant throughout the entire mission (except for the mean anomaly)
-planets_elements = elements_from_ephems(planets, jd_start_0);
+planets_elements = elements_from_ephems(planets, jd_start);
 
 
 % Compute planets states from start to end date with a step of a day or
@@ -70,11 +70,11 @@ planets_elements = elements_from_ephems(planets, jd_start_0);
 
 % Find position and velocity vectors
 
-[~, r_earth, v_earth] = planet_orbit_coplanar(planets_elements.earth, jd_start_0, jd_start, [jd_start_0, jd_start]);
+[~, r_earth, v_earth] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_earth_fb, [jd_start, jd_earth_fb]);
 r_earth_fb_0 = r_earth(:, end); 
 v_earth_fb_0 = v_earth(:, end);
 
-[~, r_mars_fb, v_mars_fb] = planet_orbit_coplanar(planets_elements.mars, jd_start_0, jd_mars_fb, [jd_start_0, jd_mars_fb]);
+[~, r_mars_fb, v_mars_fb] = planet_orbit_coplanar(planets_elements.mars, jd_start, jd_mars_fb, [jd_start, jd_mars_fb]);
 r_mars_fb = r_mars_fb(:, end); 
 v_mars_fb = v_mars_fb(:, end);
 
@@ -113,13 +113,10 @@ sat.orbit0.i = i_ecl;
 %% Part 1: Escape trajectory from Earth to Earth for a fly-by
 % Compute trajectory from Earth to Jupiter: orbital parameters of the
 % transfer trajectory and initial ad final velocities
-deltaT_earth_earth = (jd_start - jd_start_0)*24*60*60;
-
-
-
+deltaT_earth_earth = (jd_earth_fb - jd_start)*24*60*60;
 
 % Compute initial and final velocities in au/s
-[v_earth_sp_appr, v_earth_sa_appr, ~, exitflag] = lambert(r_earth(:, 1)', r_earth_fb_0', -deltaT_earth_earth, 0, mu_sun_au, 'au', 'sec');
+[v_earth_sp_appr, v_earth_sa_appr, ~, exitflag] = lambert(r_earth(:, 1)', r_earth_fb_0', deltaT_earth_earth, 1, mu_sun_au, 'au', 'sec');
 
 if dot(v_earth_sp_appr, v_earth(:,1)) < 0
     fprintf('Traiettoria retrograda rispetto alla Terra → non fisica');
@@ -168,7 +165,7 @@ v_direction = v_direction / norm(v_direction);
 
 % Time of maneuver
 delta_t_wait = kepler_direct( mu_earth, sat.orbit0.a, sat.orbit0.e, sat.orbit0.nu, sat.orbit0.nu_manoeuver );
-jd_esc_maneuver = jd_start_0 + delta_t_wait / 86400;
+jd_esc_maneuver = jd_start + delta_t_wait / 86400;
 
 % Velocity at hyperbolic perigee
 v_hyperbola_perigee_mag = sqrt(mu_earth * (2 / norm(r_esc_ecl_eci) - 1 / sat.orbit_escape_earth.a));
@@ -242,8 +239,8 @@ fprintf('===========================================================\n');
 % 1. Definiamo i fattori di correzione
 
 % Correzioni fly by marte con partenza 2005 e lambert che completa un'orbita
-k_vel = 0.99999999;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle = 0.05;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+k_vel = 0.9965;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle = -0.5;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 
 % % Correzioni fly by marte con partenza 2006 e lambert nessuna orbita completa
@@ -295,7 +292,7 @@ v_sat_earth_escape = state_sat_earth_escape(:, 4:6)';
 % Compute jd time and Earth position when satellite is at Earth SoI
 jd_earth_sp = t_vec_escape(end)/24/60/60; % momento esatto in cui si ha uscita Earth SoI
 earth_soi_date = datetime(jd_earth_sp,'convertfrom','juliandate','Format','d-MMM-y HH:mm:ss', 'TimeZone', timezone);
-[~, r_earth_sp, v_earth_sp] = planet_orbit_coplanar(planets_elements.earth, jd_start_0, jd_earth_sp, [jd_start_0, jd_earth_sp]);
+[~, r_earth_sp, v_earth_sp] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_earth_sp, [jd_start, jd_earth_sp]);
 r_earth_sp = r_earth_sp(:, end); % posizione e velocità della terra al momento in cui sat buca SoI 
 v_earth_sp = v_earth_sp(:, end);
 
@@ -314,12 +311,12 @@ state0_interplanetary_earth_earth = [r_sat_earth_sp; v_sat_earth_sp];
 % parametro correttivo gg interplanetary
 kg = 0;
 % calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI terra
-t_cruise_total_earth_earth = jd_start*24*60*60 - t_vec_escape(end); %durata in secondi del viaggio 
+t_cruise_total_earth_earth = jd_earth_fb*24*60*60 - t_vec_escape(end); %durata in secondi del viaggio 
 
 t_cruise_total_earth_earth=t_cruise_total_earth_earth+kg*24*60*60;
-t_vec_cruise_earth_earth= linspace(t_vec_escape(end), jd_start*24*60*60  + (kg*24*60*60) ,t_cruise_total_earth_earth/3600);
+t_vec_cruise_earth_earth= linspace(t_vec_escape(end), jd_earth_fb*24*60*60  + (kg*24*60*60) ,t_cruise_total_earth_earth/3600);
 % propagazione
-options_cruise_earth_earth = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition_interplanetary(t, y, jd_start_0 , planets_elements.earth , soi_earth));
+options_cruise_earth_earth = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition_interplanetary(t, y, jd_start , planets_elements.earth , soi_earth));
 [t_vec_cruise_earth_earth, state_cruise_earth_earth] = ode45(@(t, y) satellite_ode(t, y, mu_sun_au), t_vec_cruise_earth_earth, state0_interplanetary_earth_earth, options_cruise_earth_earth);
 
 % Estrazione Risultati finali (Stato Eliocentrico all'arrivo)
@@ -331,7 +328,7 @@ jd_earth_arrival_actual = t_vec_cruise_earth_earth(end)/24/60/60;
 
 % 7. Dove si trova la Terra in quel momento preciso?
 % Calcoliamo posizione e velocità della terra usando le effemeridi
-[~, r_earth_arr, v_earth_arr] = planet_orbit_coplanar(planets_elements.earth, jd_start_0, jd_earth_arrival_actual, [jd_start_0, jd_earth_arrival_actual]);
+[~, r_earth_arr, v_earth_arr] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_earth_arrival_actual, [jd_start, jd_earth_arrival_actual]);
 r_earth_arr = r_earth_arr(:, end); % Posizione Terra (AU)
 v_earth_arr = v_earth_arr(:, end); % Velocità terra (AU/s)
 
@@ -360,6 +357,32 @@ else
     fprintf('Errore di puntamento: %.2f km\n', dist_from_earth - soi_earth);
 end
 
+%% Propagate inside Earth SoI
+% Propagate inside the Earth SoI till the satellite exits the Earth SoI
+options_earth_fb = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition(t, y, soi_earth, 'exit'));
+state0_sat_earth_fb = [r_sat_earth_km; v_sat_earth_km]; % punto di partenza simulazione (calcolato prima) 
+t_vec_earth_escape = linspace(t_vec_cruise_earth_earth(end), t_vec_cruise_earth_earth(end)+gg*24*60*60, gg*24*60);
+[t_vec_earth_fb, state_sat_earth_fb] = ode45(@(t, y) satellite_ode(t, y, mu_earth), t_vec_earth_escape, state0_sat_earth_fb, options_earth_fb);
+r_sat_earth_escape = state_sat_earth_fb(:, 1:3)';
+v_sat_earth_escape = state_sat_earth_fb(:, 4:6)';
 
+% Compute jd time and Earth position when satellite is exiting earth SoI limit
+jd_earth_sp = t_vec_earth_escape(end)/24/60/60; % momento esatto in cui si ha uscita Earth SoI
+earth_fb_soi_date = datetime(jd_earth_sp,'convertfrom','juliandate','Format','d-MMM-y HH:mm:ss', 'TimeZone', timezone);
+[~, r_earth_sp, v_earth_sp] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_earth_sp, [jd_start, jd_earth_sp]);
+r_earth_sp = r_earth_sp(:, end);  
+v_earth_sp = v_earth_sp(:, end);
 
+% Convert from Earth-Centered to J2000 absolute frame
+r_sat_earthfb_sp = r_sat_earth_escape(:, end)/au + r_earth_sp;
+v_sat_earthfb_sp = v_sat_earth_escape(:, end)/au + v_earth_sp;
 
+% Compute fly-by deltaV [km/s]
+
+deltaV_earthfb = ( norm(v_sat_earthfb_sp) - norm(v_sat_interplanetary_earth_earth) ) * au;
+
+% pericenter = norm(r_sat_mars_escape(:, end));
+% fprintf('Pericentro della traiettoria: %.2f km\n', pericenter);
+fprintf('Delta V del Fly-by per Terra: %.2f km/s \n', deltaV_earthfb);
+
+plot_mars_soi(t_vec_earth_escape, r_sat_earth_escape, soi_earth, v_earth_sp);
