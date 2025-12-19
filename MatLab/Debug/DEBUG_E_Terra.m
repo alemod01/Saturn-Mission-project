@@ -12,8 +12,8 @@ try
 
     %Traiettoria terra 
     step_m=0.1; 
-    jd_vec = jd_start_0:step_m:jd_earth_arrival_actual;
-    [~, r_earth_traj, v_earth_traj] = planet_orbit_coplanar(planets_elements.earth, jd_start_0, jd_earth_arrival_actual, jd_vec);
+    jd_vec = jd_start:step_m:jd_earth_arrival_actual;
+    [~, r_earth_traj, v_earth_traj] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_earth_arrival_actual, jd_vec);
     plot(r_earth_traj(1, :), r_earth_traj(2, :), 'b--', 'LineWidth', 1.2, 'DisplayName', 'Orbita Terra');
     
     
@@ -67,5 +67,5 @@ try
     catch
     end
 catch ME
-    warning(ME.noPlot2D , 'Impossibile creare il plot 2D Earth->Earth: %s', ME.message)
+    warning('DEBUG_E_Terra:PlotFailed', 'Impossibile creare il plot 2D Earth->Earth: %s', ME.message)
 end

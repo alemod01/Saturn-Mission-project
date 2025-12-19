@@ -1,13 +1,15 @@
 close all
+clear all
 clc
 
 % Astronomical Unit
 au = 149597870.7;       % km
 
 % Planet radius
+R_earth = 6371;         % km
 R_mars = 3389.5;        % km  
 R_jupiter = 71492;      % km
-R_saturn= 58.232;       %km
+R_saturn= 58232;        % km
 
 % Gravitational parameters
 mu_sun = 1.32712440018e11; % [km^3/s^2]
@@ -37,7 +39,7 @@ sat.orbit0.nu = -240.4281;     % deg
 %% Initialization
 % Select starting date and convert it in Julian Date
 timezone = 'UTC';
-start_date = datetime('2003-03-02 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
+start_date = datetime('2003-01-02 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
 earth_fb_date = datetime('2005-03-04 12:00:00', "TimeZone", timezone);
 mars_fb_date = datetime('2007-02-25 12:00:00', "TimeZone", timezone);
 earth_fb1_date = datetime('2007-11-13 12:00:00', "TimeZone", timezone);
@@ -239,13 +241,10 @@ fprintf('===========================================================\n');
 % 1. Definiamo i fattori di correzione
 
 % Correzioni fly by marte con partenza 2005 e lambert che completa un'orbita
-k_vel = 0.9965;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle = -0.5;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+% k_vel = 0.997929;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+k_vel = 0.9979289;       % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle = 0;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
-
-% % Correzioni fly by marte con partenza 2006 e lambert nessuna orbita completa
-% k_vel = 1.0025;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-% delta_angle = -0.059925;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
 v_esc_mag_corr = norm(v_esc) * k_vel;
@@ -357,32 +356,34 @@ else
     fprintf('Errore di puntamento: %.2f km\n', dist_from_earth - soi_earth);
 end
 
-%% Propagate inside Earth SoI
+%% Propagate inside Earth SoI during fly-by
 % Propagate inside the Earth SoI till the satellite exits the Earth SoI
 options_earth_fb = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition(t, y, soi_earth, 'exit'));
 state0_sat_earth_fb = [r_sat_earth_km; v_sat_earth_km]; % punto di partenza simulazione (calcolato prima) 
 t_vec_earth_escape = linspace(t_vec_cruise_earth_earth(end), t_vec_cruise_earth_earth(end)+gg*24*60*60, gg*24*60);
-[t_vec_earth_fb, state_sat_earth_fb] = ode45(@(t, y) satellite_ode(t, y, mu_earth), t_vec_earth_escape, state0_sat_earth_fb, options_earth_fb);
-r_sat_earth_escape = state_sat_earth_fb(:, 1:3)';
-v_sat_earth_escape = state_sat_earth_fb(:, 4:6)';
+[t_vec_earth_escape, state_sat_earth_fb] = ode45(@(t, y) satellite_ode(t, y, mu_earth), t_vec_earth_escape, state0_sat_earth_fb, options_earth_fb);
+r_sat_earthfb_escape = state_sat_earth_fb(:, 1:3)';
+v_sat_earthfb_escape = state_sat_earth_fb(:, 4:6)';
 
 % Compute jd time and Earth position when satellite is exiting earth SoI limit
 jd_earth_sp = t_vec_earth_escape(end)/24/60/60; % momento esatto in cui si ha uscita Earth SoI
 earth_fb_soi_date = datetime(jd_earth_sp,'convertfrom','juliandate','Format','d-MMM-y HH:mm:ss', 'TimeZone', timezone);
-[~, r_earth_sp, v_earth_sp] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_earth_sp, [jd_start, jd_earth_sp]);
-r_earth_sp = r_earth_sp(:, end);  
-v_earth_sp = v_earth_sp(:, end);
+[~, r_earthfb_sp, v_earthfb_sp] = planet_orbit_coplanar(planets_elements.earth, jd_start, jd_earth_sp, [jd_start, jd_earth_sp]);
+r_earthfb_sp = r_earthfb_sp(:, end);  
+v_earthfb_sp = v_earthfb_sp(:, end);
 
 % Convert from Earth-Centered to J2000 absolute frame
-r_sat_earthfb_sp = r_sat_earth_escape(:, end)/au + r_earth_sp;
-v_sat_earthfb_sp = v_sat_earth_escape(:, end)/au + v_earth_sp;
+r_sat_earthfb_sp = r_sat_earthfb_escape(:, end)/au + r_earthfb_sp;
+v_sat_earthfb_sp = v_sat_earthfb_escape(:, end)/au + v_earthfb_sp;
 
 % Compute fly-by deltaV [km/s]
 
 deltaV_earthfb = ( norm(v_sat_earthfb_sp) - norm(v_sat_interplanetary_earth_earth) ) * au;
 
-% pericenter = norm(r_sat_mars_escape(:, end));
-% fprintf('Pericentro della traiettoria: %.2f km\n', pericenter);
+pericenter = norm(r_sat_earthfb_escape(:,end));
+fprintf('Pericentro della traiettoria: %.2f km\n', pericenter);
 fprintf('Delta V del Fly-by per Terra: %.2f km/s \n', deltaV_earthfb);
 
-plot_mars_soi(t_vec_earth_escape, r_sat_earth_escape, soi_earth, v_earth_sp);
+plot_mars_soi(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_earth);
+
+sat.orbit_post_fb_earth = rv2oe(r_sat_earthfb_sp, v_sat_earthfb_sp, mu_sun_au);
