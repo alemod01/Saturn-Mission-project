@@ -486,7 +486,7 @@ if strcmp(ode_stop_mode, 'exit')
     fprintf('Closest Approach: %.2f km from Mars surface\n', min_dist - R_mars);
     fprintf('Mars Flyby Delta-v: %.2f km/s\n', deltaV_marsfb);
     v_exit_marsfb_helio_km = norm(v_sat_marsfb_sp) * au; %[km/s]
-    fprintf('Spacecraft Heliocentric Exit Velocity: %.2f km/s\n', v_exit_earthfb_helio_km);
+    fprintf('Spacecraft Heliocentric Exit Velocity: %.2f km/s\n', v_exit_marsfb_helio_km);
 elseif strcmp(ode_stop_mode, 'pericenter')
     fprintf('Simulation terminated at Pericenter (Closest Approach).\n');
     fprintf('Altitude: %.2f km from Mars surface\n', norm(r_sat_mars_escape(:, end)) - R_mars);
