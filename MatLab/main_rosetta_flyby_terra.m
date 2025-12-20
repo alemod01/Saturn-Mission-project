@@ -12,10 +12,11 @@ R_jupiter = 71492;      % km
 R_saturn= 58232;        % km
 
 % Gravitational parameters
-mu_sun = 1.32712440018e11; % [km^3/s^2]
-mu_earth = 3.986004418e5;  % [km^3/s^2]
-mu_mars = 42828.37;        % [km^3/s^2]
-mu_jupiter = 1.26686534e8; % [km^3/s^2]
+mu_sun = 1.32712440018e11;  % [km^3/s^2]
+mu_earth = 3.986004418e5;   % [km^3/s^2]
+mu_mars = 42828.37;         % [km^3/s^2]
+mu_jupiter = 1.26686534e8;  % [km^3/s^2]
+mu_saturn = 3.7931187e7;    % [km^3/s^2]
 
 mu_sun_au = mu_sun/au^3;         % [au^3/s^2]
 mu_earth_au = mu_earth/au^3;     % [au^3/s^2]
@@ -42,15 +43,13 @@ timezone = 'UTC';
 start_date = datetime('2026-01-08 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
 earth_fb_date = datetime('2028-03-04 12:00:00', "TimeZone", timezone);
 mars_fb_date = datetime('2030-02-25 12:00:00', "TimeZone", timezone);
-% earth_fb1_date = datetime('2007-11-13 12:00:00', "TimeZone", timezone);
-% earth_fb2_date = datetime('2009-11-13 12:00:00', "TimeZone", timezone);
+saturn_arrival_date = datetime('2036-01-01 12:00:00', "TimeZone", timezone);
 end_date = datetime('2037-10-19 12:00:00', "TimeZone", timezone);
 
 jd_start = juliandate(start_date);
 jd_earth_fb = juliandate(earth_fb_date);
 jd_mars_fb = juliandate(mars_fb_date);
-% jd_earth_fb1 = juliandate(earth_fb1_date);
-% jd_earth_fb2 = juliandate(earth_fb2_date);
+jd_saturn_arrival = juliandate(saturn_arrival_date);
 jd_end = juliandate(end_date);
 
 % Select planets to visualize
@@ -59,16 +58,6 @@ planets = {'venus', 'earth', 'mars', 'jupiter', 'saturn'};
 % Compute planets orbital elements at starting epoch time, and consider
 % them constant throughout the entire mission (except for the mean anomaly)
 planets_elements = elements_from_ephems(planets, jd_start);
-
-
-% Compute planets states from start to end date with a step of a day or
-% some hours
-% step = 1; %step  giorno 
-% jd_fine=jd_start+100;
-% plot_trajectory(planets_elements.mars, jd_start, jd_fine , step)
-
-% % Find closer idx to jd_mars_fb e jd_jupiter_arrival in jd_vec
-% [~, idx_mars_fb] = min(abs(jd_vec - jd_mars_fb));
 
 % Find position and velocity vectors
 
@@ -454,7 +443,7 @@ end
 fprintf('===========================================================\n');
 
 
-%% PROPAGATE FLY-BY EARTH
+%% PROPAGATE FLY-BY MARS
 % Propagate inside the Mars SoI till the satellite exits the Mars SoI
 state0_sat_mars_escape = [r_sat_mars_km; v_sat_mars_km]; % punto di partenza simulazione (calcolato prima)
 
@@ -529,3 +518,58 @@ fprintf('Angolo ruotato di:   %.2f deg\n', delta_angle_earthfb);
 fprintf('===========================================================\n');
 
 sat.orbit_post_mars_fb = rv2oe(r_sat_marsfb_sp, v_sat_marsfb_sp, mu_sun_au);
+
+%% Propagate from outside Mars SoI to Saturn SoI - interplanetary 
+% Propagate from outside Mars SoI till the satellite enters the Saturn SoI
+
+state0_interplanetary_mars_saturn = [r_sat_marsfb_sp; v_sat_marsfb_sp];
+
+% parametro correttivo gg interplanetary
+kg = 100;
+% calcolo il tempo per arrivare da fuori SoI Marte a dentro SoI Saturno 
+t_cruise_total_mars_saturn = jd_saturn_arrival*24*60*60 - t_vec_mars_escape(end); %durata in secondi del viaggio 
+
+t_cruise_total_mars_saturn=t_cruise_total_mars_saturn+kg*24*60*60;
+t_vec_cruise_mars_saturn= linspace(t_vec_mars_escape(end), jd_saturn_arrival*24*60*60  + (kg*24*60*60) ,t_cruise_total_mars_saturn/3600);
+% propagazione
+options_cruise_mars_saturn = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(t, y) stopCondition_interplanetary(t, y, jd_start , planets_elements.saturn , soi_saturn));
+[t_vec_cruise_mars_saturn, state_cruise_mars_saturn] = ode45(@(t, y) satellite_ode(t, y, mu_sun_au), t_vec_cruise_mars_saturn, state0_interplanetary_mars_saturn, options_cruise_mars_saturn);
+
+% Estrazione Risultati finali (Stato Eliocentrico all'arrivo)
+r_sat_interplanetary_mars_saturn = state_cruise_mars_saturn(end, 1:3)'; % Posizione rispetto al Sole (AU)
+v_sat_interplanetary_mars_saturn = state_cruise_mars_saturn(end, 4:6)'; % Velocità rispetto al Sole (AU/s)
+
+% Calcolo Data Esatta di Arrivo a SoI marte (Julian Date)
+jd_saturn_arrival_actual = t_vec_cruise_mars_saturn(end)/24/60/60;
+
+% Dove si trova Marte in quel momento preciso?
+% Calcoliamo posizione e velocità di Marte usando le effemeridi
+[~, r_saturn_arr, v_saturn_arr] = planet_orbit_coplanar(planets_elements.saturn, jd_start, jd_saturn_arrival_actual, [jd_start, jd_saturn_arrival_actual]);
+r_saturn_arr = r_saturn_arr(:, end); % Posizione Marte (AU)
+v_saturn_arr = v_saturn_arr(:, end); % Velocità Marte (AU/s)
+
+
+% Convert from J2000 absolute frame to Saturn-Centered frame
+% Calcoliamo il vettore relativo (Sonda rispetto a Saturno)
+r_rel_au = r_sat_interplanetary_mars_saturn - r_saturn_arr; % Vettore distanza in AU
+v_rel_au = v_sat_interplanetary_mars_saturn - v_saturn_arr; % Vettore velocità relativa in AU/s
+
+% Convertiamo in km e km/s per il controllo finale
+r_sat_saturn_km = r_rel_au * au; 
+v_sat_saturn_km = v_rel_au * au;
+
+% heck if Mars SoI has been reached
+dist_from_saturn = norm(r_sat_saturn_km);
+
+fprintf('\n============= MARS-SATURN CRUISE PHASE REPORT ==============\n');
+fprintf('Time of Flight: %.2f days\n', (t_vec_cruise_mars_saturn(end) - t_vec_cruise_mars_saturn(1)) / 86400);
+
+if dist_from_saturn < soi_saturn
+    fprintf('SUCCESS: Spacecraft successfully entered Saturn''s SOI!\n');
+else
+    fprintf('WARNING: Spacecraft arrived outside the SOI.\n');
+    fprintf('Miss distance from SOI boundary: %.2f km\n', dist_from_saturn - soi_saturn);
+    return; 
+end
+fprintf('===========================================================\n');
+
