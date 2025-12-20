@@ -39,18 +39,18 @@ sat.orbit0.nu = -240.4281;     % deg
 %% Initialization
 % Select starting date and convert it in Julian Date
 timezone = 'UTC';
-start_date = datetime('2003-01-02 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
-earth_fb_date = datetime('2005-03-04 12:00:00', "TimeZone", timezone);
-mars_fb_date = datetime('2007-02-25 12:00:00', "TimeZone", timezone);
-earth_fb1_date = datetime('2007-11-13 12:00:00', "TimeZone", timezone);
-earth_fb2_date = datetime('2009-11-13 12:00:00', "TimeZone", timezone);
-end_date = datetime('2014-10-19 12:00:00', "TimeZone", timezone);
+start_date = datetime('2026-01-08 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
+earth_fb_date = datetime('2028-03-04 12:00:00', "TimeZone", timezone);
+mars_fb_date = datetime('2030-02-25 12:00:00', "TimeZone", timezone);
+% earth_fb1_date = datetime('2007-11-13 12:00:00', "TimeZone", timezone);
+% earth_fb2_date = datetime('2009-11-13 12:00:00', "TimeZone", timezone);
+end_date = datetime('2037-10-19 12:00:00', "TimeZone", timezone);
 
 jd_start = juliandate(start_date);
 jd_earth_fb = juliandate(earth_fb_date);
 jd_mars_fb = juliandate(mars_fb_date);
-jd_earth_fb1 = juliandate(earth_fb1_date);
-jd_earth_fb2 = juliandate(earth_fb2_date);
+% jd_earth_fb1 = juliandate(earth_fb1_date);
+% jd_earth_fb2 = juliandate(earth_fb2_date);
 jd_end = juliandate(end_date);
 
 % Select planets to visualize
@@ -242,8 +242,8 @@ fprintf('===========================================================\n');
 
 % Correzioni fly by marte con partenza 2005 e lambert che completa un'orbita
 % k_vel = 0.997929;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-k_vel = 0.9979289;       % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle = 0;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+k_vel = 0.998261;       % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle = 0.1002;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 
 % 2. Applichiamo la correzione alla Magnitudine
@@ -380,10 +380,40 @@ v_sat_earthfb_sp = v_sat_earthfb_escape(:, end)/au + v_earthfb_sp;
 deltaV_earthfb = ( norm(v_sat_earthfb_sp) - norm(v_sat_interplanetary_earth_earth) ) * au;
 
 
-pericenter = norm(r_sat_earthfb_escape(:,end));
-fprintf('Pericentro della traiettoria: %.2f km\n', pericenter);
+% pericenter = norm(r_sat_earthfb_escape(:,end));
+% fprintf('Pericentro della traiettoria: %.2f km\n', pericenter);
 fprintf('Delta V del Fly-by per Terra: %.2f km/s \n', deltaV_earthfb);
-plot_mars_soi(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_earth);
+% plot_mars_soi(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_earth);
+% sat.orbit_post_fb_earth = rv2oe(r_sat_earthfb_sp, v_sat_earthfb_sp, mu_sun_au);
+
+% -------------------------------------------------------------------------
+% CORREZIONE MANUALE DEL TIRO (TARGETING) - POST EARTH FLYBY
+% -------------------------------------------------------------------------
+% Correggiamo leggermente la velocità e l'angolo di uscita dalla SOI di Marte
+% per compensare eventuali errori di puntamento verso la Terra
+
+% 1. Definiamo i fattori di correzione
+k_vel_earthfb = 1.00668;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle_earthfb = 2.75;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+
+% 2. Applichiamo la correzione alla Magnitudine
+v_earthfb_sp_mag_corr = norm(v_sat_earthfb_sp) * k_vel_earthfb;
+
+% 3. Applichiamo la correzione alla Direzione
+% Direzione attuale della velocità
+v_earthfb_sp_dir = v_sat_earthfb_sp / norm(v_sat_earthfb_sp);
+
+% Ruotiamo il vettore direzione di 'delta_angle_mars' gradi nel piano dell'Eclittica
+theta_corr_mars = deg2rad(delta_angle_earthfb);
+R_corr_mars = [cos(theta_corr_mars), -sin(theta_corr_mars), 0;
+               sin(theta_corr_mars),  cos(theta_corr_mars), 0;
+               0,                     0,                    1];
+      
+v_earthfb_sp_dir_corr = (R_corr_mars * v_earthfb_sp_dir)'; % Ruotiamo
+
+% 4. Ricalcoliamo il vettore di velocità finale CORRETTO
+v_sat_earthfb_sp = (v_earthfb_sp_mag_corr * v_earthfb_sp_dir_corr)';
+
 sat.orbit_post_fb_earth = rv2oe(r_sat_earthfb_sp, v_sat_earthfb_sp, mu_sun_au);
 
 %% Propagate from outside Earth SoI to Mars SoI - interplanetary 
@@ -392,7 +422,7 @@ sat.orbit_post_fb_earth = rv2oe(r_sat_earthfb_sp, v_sat_earthfb_sp, mu_sun_au);
 state0_interplanetary_earth_mars = [r_sat_earthfb_sp; v_sat_earthfb_sp];
 
 % parametro correttivo gg interplanetary
-kg = 0;
+kg = 500;
 % calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI marte 
 t_cruise_total_earth_mars = jd_mars_fb*24*60*60 - t_vec_earth_escape(end); %durata in secondi del viaggio 
 
