@@ -40,11 +40,11 @@ sat.orbit0.nu = -240.4281;     % deg
 %% Initialization
 % Select starting date and convert it in Julian Date
 timezone = 'UTC';
-start_date = datetime('2026-01-08 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
-earth_fb_date = datetime('2028-03-04 12:00:00', "TimeZone", timezone);
-mars_fb_date = datetime('2030-02-25 12:00:00', "TimeZone", timezone);
-saturn_arrival_date = datetime('2036-01-01 12:00:00', "TimeZone", timezone);
-end_date = datetime('2037-10-19 12:00:00', "TimeZone", timezone);
+start_date = datetime('2034-07-25 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
+earth_fb_date = datetime('2036-09-18 12:00:00', "TimeZone", timezone);
+mars_fb_date = datetime('2040-02-03 12:00:00', "TimeZone", timezone);
+saturn_arrival_date = datetime('2044-07-17 12:00:00', "TimeZone", timezone);
+end_date = datetime('2046-05-05 12:00:00', "TimeZone", timezone);
 
 jd_start = juliandate(start_date);
 jd_earth_fb = juliandate(earth_fb_date);
@@ -185,10 +185,9 @@ fprintf('===========================================================\n');
 
 % 1. Definiamo i fattori di correzione
 
-% Correzioni fly by marte con partenza 2005 e lambert che completa un'orbita
-% k_vel = 0.997929;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-k_vel = 0.998261;       % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle = 0.1002;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+% Correzioni fly by Terra
+k_vel = 0.9957194;       % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle = -0.5263;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 
 % 2. Applichiamo la correzione alla Magnitudine
@@ -351,11 +350,12 @@ plot_flyBy(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_
 % -------------------------------------------------------------------------
 % CORREZIONE MANUALE DEL TIRO (TARGETING) - POST EARTH FLYBY
 % -------------------------------------------------------------------------
-% Correggiamo leggermente la velocità e l'angolo di uscita dalla SOI di Marte
+% Correggiamo leggermente la velocità e l'angolo di uscita dalla SOI della
+% Terra
 % per compensare eventuali errori di puntamento verso la Terra
 % 1. Definiamo i fattori di correzione
- k_vel_earthfb = 1.0073;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
- delta_angle_earthfb = 4.99399;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+ k_vel_earthfb = 1.0051;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+ delta_angle_earthfb = -0.305951;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
  %k_vel_earthfb = 1.00668;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
  %delta_angle_earthfb = 2.82975;   % Correzione angolo in gradi (es. +0.5 o -0.5)
@@ -392,7 +392,7 @@ sat.orbit_post_fb_earth = rv2oe(r_sat_earthfb_sp, v_sat_earthfb_sp, mu_sun_au);
 state0_interplanetary_earth_mars = [r_sat_earthfb_sp; v_sat_earthfb_sp];
 
 % parametro correttivo gg interplanetary
-kg = 510;
+kg = -48;
 % calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI marte 
 t_cruise_total_earth_mars = jd_mars_fb*24*60*60 - t_vec_earth_escape(end); %durata in secondi del viaggio 
 
@@ -490,8 +490,8 @@ plot_flyBy(t_vec_mars_escape, r_sat_mars_escape, soi_mars, v_mars_sp, R_mars);
 % Correggiamo leggermente la velocità e l'angolo di uscita dalla SOI di Marte
 % per compensare eventuali errori di puntamento verso la Terra
 % 1. Definiamo i fattori di correzione
- k_vel_marsfb = 1.1;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
- delta_angle_earthfb = 0;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+ k_vel_marsfb = 1.115;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+ delta_angle_earthfb = 17.5;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
 v_marsfb_sp_mag_corr = norm(v_sat_marsfb_sp ) * k_vel_marsfb;
