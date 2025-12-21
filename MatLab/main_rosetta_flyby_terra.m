@@ -40,19 +40,17 @@ sat.orbit0.nu = -240.4281;     % deg
 %% Initialization
 % Select starting date and convert it in Julian Date
 timezone = 'UTC';
-start_date = datetime('2026-01-08 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
-earth_fb_date = datetime('2028-03-04 12:00:00', "TimeZone", timezone);
-mars_fb_date = datetime('2031-07-20 12:00:00', "TimeZone", timezone);
-saturn_arrival_date = datetime('2036-01-01 12:00:00', "TimeZone", timezone);
-end_date = datetime('2037-10-19 12:00:00', "TimeZone", timezone);
+start_date = datetime('2034-07-25 12:00:00', "TimeZone", timezone);%rosetta parte il 2004-03-02 12:00:00
+earth_fb_date = datetime('2036-09-18 12:00:00', "TimeZone", timezone);
+mars_fb_date = datetime('2040-02-03 12:00:00', "TimeZone", timezone);
+saturn_arrival_date = datetime('2044-07-17 12:00:00', "TimeZone", timezone);
+end_date = datetime('2046-05-05 12:00:00', "TimeZone", timezone);
 
-prova = 4;
-
-jd_start = juliandate(start_date) + prova * 780;
-jd_earth_fb = juliandate(earth_fb_date) + prova * 780;
-jd_mars_fb = juliandate(mars_fb_date) + prova * 780;
-jd_saturn_arrival = juliandate(saturn_arrival_date) + prova * 780;
-jd_end = juliandate(end_date) + prova * 780;
+jd_start = juliandate(start_date);
+jd_earth_fb = juliandate(earth_fb_date);
+jd_mars_fb = juliandate(mars_fb_date);
+jd_saturn_arrival = juliandate(saturn_arrival_date);
+jd_end = juliandate(end_date);
 
 % Select planets to visualize
 planets = {'venus', 'earth', 'mars', 'jupiter', 'saturn'};
