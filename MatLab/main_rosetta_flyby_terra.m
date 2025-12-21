@@ -634,7 +634,7 @@ deltaV_capture = v_cattura - norm(v_sat_saturn_soi(:,end));
 v_p_dir = v_sat_saturn_soi(:,end) / norm(v_sat_saturn_soi(:,end)); % Versore direzione velocità
 v_post_maneuver = v_cattura * v_p_dir;
 
-sat.orbit_post_capture = rv2oe(r_sat_saturn_soi(:,end), v_sat_saturn_soi(:,end), mu_saturn);
+sat.orbit_post_capture = rv2oe(r_sat_saturn_soi(:,end), v_post_maneuver, mu_saturn);
 
 % Se vuoi propagare l'orbita circolare per vederla graficamente:
 options_final_orbit = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18);
