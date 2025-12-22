@@ -43,8 +43,8 @@ timezone = 'UTC';
 start_date = datetime('2034-07-25 12:00:00', "TimeZone", timezone); 
 earth_fb_date = datetime('2036-09-18 12:00:00', "TimeZone", timezone);
 mars_fb_date = datetime('2039-12-17 12:00:00', "TimeZone", timezone);
-saturn_arrival_date = datetime('2044-10-25 12:00:00', "TimeZone", timezone);
-end_date = datetime('2046-05-05 12:00:00', "TimeZone", timezone);
+saturn_arrival_date = datetime('2045-01-23 12:00:00', "TimeZone", timezone);
+end_date = datetime('2045-07-05 12:00:00', "TimeZone", timezone);
 
 jd_start = juliandate(start_date);
 jd_earth_fb = juliandate(earth_fb_date);
@@ -525,7 +525,7 @@ sat.orbit_post_mars_fb = rv2oe(r_sat_marsfb_sp, v_sat_marsfb_sp, mu_sun_au);
 state0_interplanetary_mars_saturn = [r_sat_marsfb_sp; v_sat_marsfb_sp];
 
 % parametro correttivo gg interplanetary
-kg = 90;
+kg = 0;
 % calcolo il tempo per arrivare da fuori SoI Marte a dentro SoI Saturno 
 t_cruise_total_mars_saturn = jd_saturn_arrival*24*60*60 - t_vec_mars_escape(end); %durata in secondi del viaggio 
 
@@ -614,6 +614,7 @@ elseif strcmp(ode_stop_mode, 'pericenter')
     fprintf('Altitude: %.2f km from Saturn surface\n', norm(r_sat_saturn_soi(:, end)) - R_saturn);
     fprintf('Speed at pericenter compared to Saturn: %.2f km/s \n', norm(v_sat_saturn_soi(:, end)));
     fprintf('DeltaV at pericenter compared to Saturn: %.2f km/s \n', deltaV_inside_soi);
+    fprintf('Actual ending date of the mission: %s \n', saturn_soi_date);
 end
 fprintf('===========================================================\n');
 plot_flyBy(t_vec_saturn_soi, r_sat_saturn_soi, soi_saturn, v_saturn_sp, R_saturn);
@@ -641,17 +642,16 @@ options_final_orbit = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18);
 period_saturn = 2 * pi * sqrt(norm(r_sat_saturn_soi(:,end))^3 / mu_saturn);
 t_orbit = linspace(0, 2*period_saturn, 1000); % Propaghiamo per 2 periodi
     
-    state0_final = [r_sat_saturn_soi(:,end); v_post_maneuver];
-    [~, state_final] = ode45(@(t, y) satellite_ode(t, y, mu_saturn), t_orbit, state0_final, options_final_orbit);
+state0_final = [r_sat_saturn_soi(:,end); v_post_maneuver];
+[~, state_final] = ode45(@(t, y) satellite_ode(t, y, mu_saturn), t_orbit, state0_final, options_final_orbit);
     
-    % Plot dell'orbita di cattura (aggiungi al plot esistente o nuovo)
-    % Usiamo la tua funzione plot_flyBy o plot manuale
-    figure('Name', 'Saturn Capture Orbit');
-    plot3(state_final(:,1), state_final(:,2), state_final(:,3), 'g', 'LineWidth', 2);
-    hold on; grid on; axis equal;
-    [xs, ys, zs] = sphere(50);
-    surf(xs*R_saturn, ys*R_saturn, zs*R_saturn, 'FaceColor', [0.8 0.6 0.4]); % Saturno
-    title('Orbita Finale di Cattura attorno a Saturno');
-    xlabel('x [km]'); ylabel('y [km]'); zlabel('z [km]');
-    legend('Orbita Circolare Finale', 'Saturno');
-                                                            
+% Plot dell'orbita di cattura (aggiungi al plot esistente o nuovo)
+% Usiamo la tua funzione plot_flyBy o plot manuale
+figure('Name', 'Saturn Capture Orbit');
+plot3(state_final(:,1), state_final(:,2), state_final(:,3), 'g', 'LineWidth', 2);
+hold on; grid on; axis equal;
+[xs, ys, zs] = sphere(50);
+surf(xs*R_saturn, ys*R_saturn, zs*R_saturn, 'FaceColor', [0.8 0.6 0.4]); % Saturno
+title('Orbita Finale di Cattura attorno a Saturno');
+xlabel('x [km]'); ylabel('y [km]'); zlabel('z [km]');
+legend('Orbita Circolare Finale', 'Saturno');                                                           
