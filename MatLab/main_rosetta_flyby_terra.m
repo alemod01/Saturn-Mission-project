@@ -191,6 +191,7 @@ delta_angle = -0.5263;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 
 % 2. Applichiamo la correzione alla Magnitudine
+v_old=v_esc; 
 v_esc_mag_corr = norm(v_esc) * k_vel;
 
 % 3. Applichiamo la correzione alla Direzione
@@ -205,11 +206,14 @@ v_dir_corr = (R_corr * v_direction)'; % Ruotiamo
 % 4. Ricalcoliamo il vettore di fuga finale CORRETTO
 v_esc = (v_esc_mag_corr * v_dir_corr)';
 
+deltaV_cost_earth_esc_km= norm (v_esc - v_old); %[Km/s]
 % (Stampa di debug per vedere cosa stiamo facendo)
 fprintf('\n============== TARGETING CORRECTION APPLIED ===============\n');
 fprintf('Earth Departure Corrections\n');
 fprintf('Velocità scalata di: %.4f\n', k_vel);
 fprintf('Angolo ruotato di:   %.2f deg\n', delta_angle);
+fprintf('-----------------------------------------------------------\n');
+fprintf('COSTO MANOVRA (Delta V): %.4f km/s\n', deltaV_cost_earth_esc_km);
 fprintf('===========================================================\n');
 
 
@@ -361,6 +365,7 @@ plot_flyBy(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_
  %delta_angle_earthfb = 2.82975;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
+v_old=v_sat_earthfb_sp; 
 v_earthfb_sp_mag_corr = norm(v_sat_earthfb_sp) * k_vel_earthfb;
 
 % 3. Applichiamo la correzione alla Direzione
@@ -378,10 +383,15 @@ v_earthfb_sp_dir_corr = (R_corr_mars * v_earthfb_sp_dir)'; % Ruotiamo
 % 4.Ricalcoliamo il vettore di velocità finale CORRETTO
 v_sat_earthfb_sp = (v_earthfb_sp_mag_corr * v_earthfb_sp_dir_corr)';
 
+deltaV_cost_earth_fb_au= norm (v_sat_earthfb_sp - v_old); %[Au/s]
+deltaV_cost_earth_fb_km= deltaV_cost_earth_fb_au*au; %[Km/s]
+
 fprintf('\n============== TARGETING CORRECTION APPLIED ===============\n');
 fprintf('Post fly by Earth Departure Corrections\n');
 fprintf('Velocità scalata di: %.4f\n', k_vel_earthfb);
 fprintf('Angolo ruotato di:   %.2f deg\n', delta_angle_earthfb);
+fprintf('-----------------------------------------------------------\n');
+fprintf('COSTO MANOVRA (Delta V): %.4f km/s\n', deltaV_cost_earth_fb_km);
 fprintf('===========================================================\n');
 
 sat.orbit_post_fb_earth = rv2oe(r_sat_earthfb_sp, v_sat_earthfb_sp, mu_sun_au);
@@ -485,7 +495,7 @@ fprintf('===========================================================\n');
 plot_flyBy(t_vec_mars_escape, r_sat_mars_escape, soi_mars, v_mars_sp, R_mars);
 
 % -------------------------------------------------------------------------
-% CORREZIONE MANUALE DEL TIRO (TARGETING) - POST EARTH FLYBY
+% CORREZIONE MANUALE DEL TIRO (TARGETING) - POST MARS FLYBY
 % -------------------------------------------------------------------------
 % Correggiamo leggermente la velocità e l'angolo di uscita dalla SOI di Marte
 % per compensare eventuali errori di puntamento verso la Terra
@@ -494,6 +504,7 @@ plot_flyBy(t_vec_mars_escape, r_sat_mars_escape, soi_mars, v_mars_sp, R_mars);
  delta_angle_earthfb = 19.01;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
+v_old = v_sat_marsfb_sp;
 v_marsfb_sp_mag_corr = norm(v_sat_marsfb_sp ) * k_vel_marsfb;
 
 % 3. Applichiamo la correzione alla Direzione
@@ -507,16 +518,20 @@ R_corr_mars = [cos(theta_corr_mars), -sin(theta_corr_mars), 0;
                0,                     0,                    1];
       
 v_marsfb_sp_dir_corr = (R_corr_mars * v_marsfb_sp_dir)'; % Ruotiamo
-
+ 
 % 4.Ricalcoliamo il vettore di velocità finale CORRETTO
 v_sat_marsfb_sp = (v_marsfb_sp_mag_corr * v_marsfb_sp_dir_corr)';
+
+deltaV_cost_mars_fb_au= norm (v_sat_marsfb_sp - v_old); %[Au/s]
+deltaV_cost_mars_fb_km= deltaV_cost_mars_fb_au*au; %[Km/s]
 
 fprintf('\n============== TARGETING CORRECTION APPLIED ===============\n');
 fprintf('Post fly by Earth Departure Corrections\n');
 fprintf('Velocità scalata di: %.4f\n', k_vel_marsfb);
 fprintf('Angolo ruotato di:   %.2f deg\n', delta_angle_earthfb);
+fprintf('-----------------------------------------------------------\n');
+fprintf('COSTO MANOVRA (Delta V): %.4f km/s\n', deltaV_cost_mars_fb_km);
 fprintf('===========================================================\n');
-
 sat.orbit_post_mars_fb = rv2oe(r_sat_marsfb_sp, v_sat_marsfb_sp, mu_sun_au);
 
 %% Propagate from outside Mars SoI to Saturn SoI - interplanetary 
@@ -619,28 +634,26 @@ end
 fprintf('===========================================================\n');
 plot_flyBy(t_vec_saturn_soi, r_sat_saturn_soi, soi_saturn, v_saturn_sp, R_saturn);
 
-%% Caputre Maneuver
+%% Capture Maneuver
 % Manovra per rimanere in orbita circolare intorno a Saturno, applicata
 % quando arriviamo nel punto più vicino a Saturno nella propagazione
 % precedente
-
-v_cattura = sqrt(mu_saturn/norm(r_sat_saturn_soi(:,end)));  % velocità necessaria per rimanere in orbita circolare
-
+R_Titan = 1222000;          % km
+R_Encelado = 238000;        % km
+e_des = (R_Titan - R_Encelado)/(R_Titan + R_Encelado);
+v_cattura = sqrt( (mu_saturn/norm(r_sat_saturn_soi(:,end))) * (1 + e_des));  % velocità necessaria per rimanere in orbita circolare
 % Calcolo del Delta-V necessario
 % Dobbiamo frenare: DeltaV = V_attuale - V_necessaria
 deltaV_capture = v_cattura - norm(v_sat_saturn_soi(:,end));
-
 % 4. Calcoliamo il nuovo vettore velocità post-manovra
 % La direzione rimane la stessa (tangente all'orbita), cambia solo il modulo
 v_p_dir = v_sat_saturn_soi(:,end) / norm(v_sat_saturn_soi(:,end)); % Versore direzione velocità
 v_post_maneuver = v_cattura * v_p_dir;
-
 sat.orbit_post_capture = rv2oe(r_sat_saturn_soi(:,end), v_post_maneuver, mu_saturn);
-
 % Se vuoi propagare l'orbita circolare per vederla graficamente:
 options_final_orbit = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18);
 period_saturn = 2 * pi * sqrt(norm(r_sat_saturn_soi(:,end))^3 / mu_saturn);
-t_orbit = linspace(0, 2*period_saturn, 1000); % Propaghiamo per 2 periodi
+t_orbit = linspace(0, 10*period_saturn, 1000); % Propaghiamo per 2 periodi
     
 state0_final = [r_sat_saturn_soi(:,end); v_post_maneuver];
 [~, state_final] = ode45(@(t, y) satellite_ode(t, y, mu_saturn), t_orbit, state0_final, options_final_orbit);
@@ -654,4 +667,4 @@ hold on; grid on; axis equal;
 surf(xs*R_saturn, ys*R_saturn, zs*R_saturn, 'FaceColor', [0.8 0.6 0.4]); % Saturno
 title('Orbita Finale di Cattura attorno a Saturno');
 xlabel('x [km]'); ylabel('y [km]'); zlabel('z [km]');
-legend('Orbita Circolare Finale', 'Saturno');                                                           
+legend('Orbita Circolare Finale', 'Saturno');
