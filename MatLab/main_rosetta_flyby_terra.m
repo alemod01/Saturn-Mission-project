@@ -40,11 +40,11 @@ sat.orbit0.nu = -240.4281;     % deg
 %% Initialization
 % Select starting date and convert it in Julian Date
 timezone = 'UTC';
-start_date = datetime('2034-07-25 12:00:00', "TimeZone", timezone); 
-earth_fb_date = datetime('2036-10-30 12:00:00', "TimeZone", timezone);
-mars_fb_date = datetime('2039-12-17 12:00:00', "TimeZone", timezone);
-saturn_arrival_date = datetime('2045-01-23 12:00:00', "TimeZone", timezone);
-end_date = datetime('2045-07-05 12:00:00', "TimeZone", timezone);
+start_date = datetime('2034-08-25 12:00:00', "TimeZone", timezone); 
+earth_fb_date = datetime('2036-11-10 12:00:00', "TimeZone", timezone);
+mars_fb_date = datetime('2040-04-14 12:00:00', "TimeZone", timezone);
+saturn_arrival_date = datetime('2046-09-15 12:00:00', "TimeZone", timezone);
+end_date = datetime('2046-11-01 12:00:00', "TimeZone", timezone);
 
 jd_start = juliandate(start_date);
 jd_earth_fb = juliandate(earth_fb_date);
@@ -186,8 +186,8 @@ fprintf('===========================================================\n');
 % 1. Definiamo i fattori di correzione
 
 % Correzioni fly by Terra
-k_vel = 0.997239;       % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle = -0.1354401;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+k_vel = 0.997339;       % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle = -0.1334401;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 
 % 2. Applichiamo la correzione alla Magnitudine
@@ -348,7 +348,7 @@ elseif strcmp(ode_stop_mode_fb_Earth, 'pericenter')
     return; 
 end
 fprintf('===========================================================\n');
-% plot_flyBy(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_earth);
+plot_flyBy(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_earth);
 
 
 % -------------------------------------------------------------------------
@@ -359,8 +359,8 @@ fprintf('===========================================================\n');
 % per compensare eventuali errori di puntamento verso la Terra
 % 1. Definiamo i fattori di correzione
  
-k_vel_earthfb = 0.95495;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
-delta_angle_earthfb = 1.13825;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+k_vel_earthfb = 0.972249;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+delta_angle_earthfb = 0.01308;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
 v_old = v_sat_earthfb_sp; 
@@ -400,7 +400,7 @@ sat.orbit_post_fb_earth = rv2oe(r_sat_earthfb_sp, v_sat_earthfb_sp, mu_sun_au);
 state0_interplanetary_earth_mars = [r_sat_earthfb_sp; v_sat_earthfb_sp];
 
 % parametro correttivo gg interplanetary
-kg = 59;
+kg = 0;
 % calcolo il tempo per arrivare da fuori SoI Terra a dentro SoI marte 
 t_cruise_total_earth_mars = jd_mars_fb*24*60*60 - t_vec_earth_escape(end); %durata in secondi del viaggio 
 
@@ -490,7 +490,7 @@ elseif strcmp(ode_stop_mode, 'pericenter')
     return; 
 end
 fprintf('===========================================================\n');
-% plot_flyBy(t_vec_mars_escape, r_sat_mars_escape, soi_mars, v_mars_sp, R_mars);
+plot_flyBy(t_vec_mars_escape, r_sat_mars_escape, soi_mars, v_mars_sp, R_mars);
 
 % -------------------------------------------------------------------------
 % CORREZIONE MANUALE DEL TIRO (TARGETING) - POST MARS FLYBY
@@ -498,8 +498,8 @@ fprintf('===========================================================\n');
 % Correggiamo leggermente la velocità e l'angolo di uscita dalla SOI di Marte
 % per compensare eventuali errori di puntamento verso la Terra
 % 1. Definiamo i fattori di correzione
- k_vel_marsfb = 1.125;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
- delta_angle_earthfb = 7.91;   % Correzione angolo in gradi (es. +0.5 o -0.5)
+ k_vel_marsfb = 1.11835;        % Moltiplicatore di velocità (es. 0.999 o 1.001)
+ delta_angle_earthfb = -0.1463;   % Correzione angolo in gradi (es. +0.5 o -0.5)
 
 % 2. Applichiamo la correzione alla Magnitudine
 v_old = v_sat_marsfb_sp;
@@ -538,7 +538,7 @@ sat.orbit_post_mars_fb = rv2oe(r_sat_marsfb_sp, v_sat_marsfb_sp, mu_sun_au);
 state0_interplanetary_mars_saturn = [r_sat_marsfb_sp; v_sat_marsfb_sp];
 
 % parametro correttivo gg interplanetary
-kg = 100;
+kg = 0;
 % calcolo il tempo per arrivare da fuori SoI Marte a dentro SoI Saturno 
 t_cruise_total_mars_saturn = jd_saturn_arrival*24*60*60 - t_vec_mars_escape(end); %durata in secondi del viaggio 
 
