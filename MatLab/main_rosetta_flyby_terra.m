@@ -599,7 +599,7 @@ options_saturn_soi = odeset('RelTol', 2.22045e-14, 'AbsTol', 1e-18, 'Events', @(
 r_sat_saturn_soi = state_sat_saturn_soi(:, 1:3)';
 v_sat_saturn_soi = state_sat_saturn_soi(:, 4:6)';
 
-% Compute jd time and Mars position when satellite is exiting Mars SoI limit
+% Compute jd time and Saturn position 
 jd_saturn_sp = t_vec_saturn_soi(end)/24/60/60; % momento esatto in cui si ha uscita Earth SoI
 saturn_soi_date = datetime(jd_saturn_sp,'convertfrom','juliandate','Format','d-MMM-y HH:mm:ss', 'TimeZone', timezone);
 [~, r_saturn_sp, v_saturn_sp] = planet_orbit_coplanar(planets_elements.saturn, jd_start, jd_saturn_sp, [jd_start, jd_saturn_sp]);
