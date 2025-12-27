@@ -348,7 +348,7 @@ elseif strcmp(ode_stop_mode_fb_Earth, 'pericenter')
     return; 
 end
 fprintf('===========================================================\n');
-plot_flyBy(t_vec_earth_escape, r_sat_earthfb_escape, soi_earth, v_earthfb_sp, R_earth);
+
 
 
 % -------------------------------------------------------------------------
@@ -490,7 +490,7 @@ elseif strcmp(ode_stop_mode, 'pericenter')
     return; 
 end
 fprintf('===========================================================\n');
-plot_flyBy(t_vec_mars_escape, r_sat_mars_escape, soi_mars, v_mars_sp, R_mars);
+
 
 % -------------------------------------------------------------------------
 % CORREZIONE MANUALE DEL TIRO (TARGETING) - POST MARS FLYBY
@@ -630,7 +630,6 @@ elseif strcmp(ode_stop_mode, 'pericenter')
     fprintf('Actual ending date of the mission: %s \n', saturn_soi_date);
 end
 fprintf('===========================================================\n');
-plot_flyBy(t_vec_saturn_soi, r_sat_saturn_soi, soi_saturn, v_saturn_sp, R_saturn);
 
 %% Capture Maneuver
 % Manovra per rimanere in orbita circolare intorno a Saturno, applicata
@@ -655,27 +654,30 @@ t_orbit = linspace(0, 10*period_saturn, 1000); % Propaghiamo per 2 periodi
     
 state0_final = [r_sat_saturn_soi(:,end); v_post_maneuver];
 [~, state_final] = ode45(@(t, y) satellite_ode(t, y, mu_saturn), t_orbit, state0_final, options_final_orbit);
+
+
+
     
-% Plot dell'orbita di cattura (aggiungi al plot esistente o nuovo)
-% Usiamo la tua funzione plot_flyBy o plot manuale
-figure('Name', 'Saturn Capture Orbit');
-plot3(state_final(:,1), state_final(:,2), state_final(:,3), 'g', 'LineWidth', 2);
-hold on; grid on; axis equal;
-[xs, ys, zs] = sphere(50);
-surf(xs*R_saturn, ys*R_saturn, zs*R_saturn, 'FaceColor', [0.8 0.6 0.4]); % Saturno
-% --- Orbite circolari di Encelado e Titano (assunte nel piano XY, z=0) ---
-theta = linspace(0, 2*pi, 1000);
-% Encelado
-x_enc = R_Encelado * cos(theta);
-y_enc = R_Encelado * sin(theta);
-z_enc = zeros(size(theta));
-plot3(x_enc, y_enc, z_enc, 'b--', 'LineWidth', 1.5);
-% Titano
-x_tit = R_Titan * cos(theta);
-y_tit = R_Titan * sin(theta);
-z_tit = zeros(size(theta));
-plot3(x_tit, y_tit, z_tit, 'r--', 'LineWidth', 1.5);
-% Aggiorna legenda (include anche le orbite)
-title('Orbita Finale di Cattura attorno a Saturno');
-xlabel('x [km]'); ylabel('y [km]'); zlabel('z [km]');
-legend('Orbita Finale', 'Saturno', 'Orbita Encelado', 'Orbita Titano');
+% % Plot dell'orbita di cattura (aggiungi al plot esistente o nuovo)
+% % Usiamo la tua funzione plot_flyBy o plot manuale
+% figure('Name', 'Saturn Capture Orbit');
+% plot3(state_final(:,1), state_final(:,2), state_final(:,3), 'g', 'LineWidth', 2);
+% hold on; grid on; axis equal;
+% [xs, ys, zs] = sphere(50);
+% surf(xs*R_saturn, ys*R_saturn, zs*R_saturn, 'FaceColor', [0.8 0.6 0.4]); % Saturno
+% % --- Orbite circolari di Encelado e Titano (assunte nel piano XY, z=0) ---
+% theta = linspace(0, 2*pi, 1000);
+% % Encelado
+% x_enc = R_Encelado * cos(theta);
+% y_enc = R_Encelado * sin(theta);
+% z_enc = zeros(size(theta));
+% plot3(x_enc, y_enc, z_enc, 'b--', 'LineWidth', 1.5);
+% % Titano
+% x_tit = R_Titan * cos(theta);
+% y_tit = R_Titan * sin(theta);
+% z_tit = zeros(size(theta));
+% plot3(x_tit, y_tit, z_tit, 'r--', 'LineWidth', 1.5);
+% % Aggiorna legenda (include anche le orbite)
+% title('Orbita Finale di Cattura attorno a Saturno');
+% xlabel('x [km]'); ylabel('y [km]'); zlabel('z [km]');
+% legend('Orbita Finale', 'Saturno', 'Orbita Encelado', 'Orbita Titano');
